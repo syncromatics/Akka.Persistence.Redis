@@ -1,4 +1,11 @@
-﻿using System;
+﻿//-----------------------------------------------------------------------
+// <copyright file="RedisPersistence.cs" company="Akka.NET Project">
+//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
+//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+// </copyright>
+//-----------------------------------------------------------------------
+
+using System;
 using Akka.Actor;
 using Akka.Configuration;
 
@@ -6,20 +13,28 @@ namespace Akka.Persistence.Redis
 {
     public class RedisSettings
     {
-        public static RedisSettings Create(Config config)
+        public RedisSettings(string configurationString, string keyPrefix, int database)
         {
-            return new RedisSettings(
-                connectionString: config.GetString("connection-string"),
-                keyPrefix: config.GetString("key-prefix"));
+            ConfigurationString = configurationString;
+            KeyPrefix = keyPrefix;
+            Database = database;
         }
 
-        public readonly string ConnectionString;
-        public readonly string KeyPrefix;
+        public string ConfigurationString { get; }
 
-        public RedisSettings(string connectionString,  string keyPrefix)
+        public string KeyPrefix { get; }
+
+        public int Database { get; }
+
+        public static RedisSettings Create(Config config)
         {
-            ConnectionString = connectionString;
-            KeyPrefix = keyPrefix;
+            if (config == null)
+                throw new ArgumentNullException(nameof(config));
+
+            return new RedisSettings(
+                configurationString: config.GetString("configuration-string"),
+                keyPrefix: config.GetString("key-prefix"),
+                database: config.GetInt("database"));
         }
     }
 
@@ -28,13 +43,13 @@ namespace Akka.Persistence.Redis
         public static RedisPersistence Get(ActorSystem system) => system.WithExtension<RedisPersistence, RedisPersistenceProvider>();
         public static Config DefaultConfig() => ConfigurationFactory.FromResource<RedisPersistence>("Akka.Persistence.Redis.reference.conf");
 
-        public readonly RedisSettings JournalSettings;
-        public readonly RedisSettings SnapshotStoreSettings;
+        public RedisSettings JournalSettings { get; }
+        public RedisSettings SnapshotStoreSettings { get; }
 
         public RedisPersistence(ExtendedActorSystem system)
         {
             system.Settings.InjectTopLevelFallback(DefaultConfig());
-            
+
             JournalSettings = RedisSettings.Create(system.Settings.Config.GetConfig("akka.persistence.journal.redis"));
             SnapshotStoreSettings = RedisSettings.Create(system.Settings.Config.GetConfig("akka.persistence.snapshot-store.redis"));
         }

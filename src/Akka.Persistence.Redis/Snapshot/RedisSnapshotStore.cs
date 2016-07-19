@@ -1,35 +1,46 @@
-﻿using System.Linq;
+﻿//-----------------------------------------------------------------------
+// <copyright file="RedisSnapshotStore.cs" company="Akka.NET Project">
+//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
+//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+// </copyright>
+//-----------------------------------------------------------------------
+
+using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Akka.Actor;
 using Akka.Persistence.Snapshot;
-using RedisBoost;
-using RedisBoost.Core.Serialization;
+using Akka.Serialization;
+using Akka.Util.Internal;
+using StackExchange.Redis;
 
 namespace Akka.Persistence.Redis.Snapshot
 {
     public class RedisSnapshotStore : SnapshotStore
     {
         private readonly RedisSettings _settings = RedisPersistence.Get(Context.System).SnapshotStoreSettings;
-        private readonly IRedisClientsPool _pool;
-        private readonly BasicRedisSerializer _serializer;
+        private Lazy<Serializer> _serializer;
+        private Lazy<IDatabase> _database;
+        private ActorSystem _system;
 
-        public RedisSnapshotStore()
+        protected override void PreStart()
         {
-            _serializer = new RedisPersistenceSerializer(Context.System);
-            _pool = RedisClient.CreateClientsPool();
-        }
+            base.PreStart();
 
-        protected override void PostStop()
-        {
-            base.PostStop();
-            _pool.Dispose();
+            _system = Context.System;
+            _database = new Lazy<IDatabase>(() =>
+            {
+                var redisConnection = ConnectionMultiplexer.Connect(_settings.ConfigurationString);
+                return redisConnection.GetDatabase(_settings.Database);
+            });
+            _serializer = new Lazy<Serializer>(() => _system.Serialization.FindSerializerForType(typeof(SelectedSnapshot)));
         }
 
         protected override async Task<SelectedSnapshot> LoadAsync(string persistenceId, SnapshotSelectionCriteria criteria)
         {
-            var client = await CreateRedisClientAsync();
-            var snapshots = await client.ZRevRangeAsync(SnapshotKey(persistenceId), 0L, criteria.MaxSequenceNr);
+            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(SnapshotKey(persistenceId), criteria.MaxSequenceNr, -1, Exclude.None, Order.Descending);
             var found = snapshots
-                .Select(bulk => bulk.As<SelectedSnapshot>())
+                .Select(c => _serializer.Value.FromBinary(c, typeof(SelectedSnapshot)).AsInstanceOf<SelectedSnapshot>())
                 .FirstOrDefault(snapshot => snapshot.Metadata.Timestamp <= criteria.MaxTimeStamp && snapshot.Metadata.SequenceNr <= criteria.MaxSequenceNr);
 
             return found;
@@ -37,35 +48,31 @@ namespace Akka.Persistence.Redis.Snapshot
 
         protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
         {
-            var client = await CreateRedisClientAsync();
-            var selectedSnapshot = new SelectedSnapshot(metadata, snapshot);
-            await client.ZAddAsync(SnapshotKey(metadata.PersistenceId), metadata.SequenceNr, selectedSnapshot);
+            var snapshotRecord = _serializer.Value.ToBinary(new SelectedSnapshot(metadata, snapshot));
+            if (snapshotRecord != null)
+                await _database.Value.SortedSetAddAsync(SnapshotKey(metadata.PersistenceId), snapshotRecord, metadata.SequenceNr);
+            else
+                throw new Exception($"Failed to save snapshot. metadata: {metadata} snapshot: {snapshot}");
         }
 
         protected override async Task DeleteAsync(SnapshotMetadata metadata)
         {
-            var client = await CreateRedisClientAsync();
-            await client.ZRemRangeByScoreAsync(SnapshotKey(metadata.PersistenceId), metadata.SequenceNr, metadata.SequenceNr);
+            await _database.Value.SortedSetRemoveRangeByScoreAsync(SnapshotKey(metadata.PersistenceId), metadata.SequenceNr, metadata.SequenceNr);
         }
 
+        // TODO: SnapshotSelectionCriteria should have MinSequenceNr
         protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria)
         {
-            var client = await CreateRedisClientAsync();
-            var snapshotKey = SnapshotKey(persistenceId);
-            var snapshots = await client.ZRevRangeAsync(snapshotKey, 0L, criteria.MaxSequenceNr);
+            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(SnapshotKey(persistenceId), criteria.MaxSequenceNr, 0L, Exclude.None, Order.Descending);
             var found = snapshots
-                .Where(bulk => bulk.ResponseType == ResponseType.Bulk)
-                .Select(bulk => bulk.As<SelectedSnapshot>())
+                .Select(c => _serializer.Value.FromBinary(c, typeof(SelectedSnapshot)).AsInstanceOf<SelectedSnapshot>())
                 .Where(snapshot => snapshot.Metadata.Timestamp <= criteria.MaxTimeStamp && snapshot.Metadata.SequenceNr <= criteria.MaxSequenceNr)
+                .Select(s => _database.Value.SortedSetRemoveRangeByScoreAsync(SnapshotKey(persistenceId), s.Metadata.SequenceNr, s.Metadata.SequenceNr))
                 .ToArray();
-            await client.ZRemAsync(snapshotKey, found);
+
+            await Task.WhenAll(found);
         }
 
-        private string SnapshotKey(string persistenceId) => _settings.KeyPrefix + ":" + persistenceId;
-
-        private Task<IRedisClient> CreateRedisClientAsync()
-        {
-            return _pool.CreateClientAsync(_settings.ConnectionString, _serializer);
-        }
+        private string SnapshotKey(string persistenceId) => $"{_settings.KeyPrefix}:{persistenceId}";
     }
 }
