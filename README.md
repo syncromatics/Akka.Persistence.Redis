@@ -1,4 +1,4 @@
-# Akka.Persistence.Redis [![Build status](https://ci.appveyor.com/api/projects/status/muvegsad9hu26ovf/branch/master?svg=true)](https://ci.appveyor.com/project/ravengerUA/akka-persistence-stackexchangeredis/branch/master)
+# Akka.Persistence.Redis [![Build status](https://ci.appveyor.com/api/projects/status/ihgbe6g07hdvxaya/branch/dev?svg=true)](https://ci.appveyor.com/project/ravengerUA/akka-persistence-redis/branch/dev)
 
 Akka Persistence journal and snapshot store backed by Redis database.
 Based on https://github.com/StackExchange/StackExchange.Redis library.
