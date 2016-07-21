@@ -17,6 +17,7 @@
 [Rr]eleases/
 x64/
 x86/
+build/
 bld/
 [Bb]in/
 [Oo]bj/
@@ -75,7 +76,6 @@ _Chutzpah*
 ipch/
 *.aps
 *.ncb
-*.opendb
 *.opensdf
 *.sdf
 *.cachefile
@@ -84,7 +84,6 @@ ipch/
 *.psess
 *.vsp
 *.vspx
-*.sap
 
 # TFS 2012 Local Workspace
 $tf/
@@ -150,24 +149,13 @@ publish/
 !**/packages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/packages/repositories.config
-# NuGet v3's project.json files produces more ignoreable files
-*.nuget.props
-*.nuget.targets
 
-# Microsoft Azure Build Output
+# Windows Azure Build Output
 csx/
 *.build.csdef
 
-# Microsoft Azure Emulator
-ecf/
-rcf/
-
-# Microsoft Azure ApplicationInsights config file
-ApplicationInsights.config
-
 # Windows Store app package directory
 AppPackages/
-BundleArtifacts/
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
@@ -177,6 +165,7 @@ BundleArtifacts/
 
 # Others
 ClientBin/
+[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl
@@ -209,9 +198,6 @@ UpgradeLog*.htm
 # Microsoft Fakes
 FakesAssemblies/
 
-# GhostDoc plugin setting file
-*.GhostDoc.xml
-
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 
@@ -229,8 +215,6 @@ FakesAssemblies/
 **/*.Server/ModelManifest.xml
 _Pvt_Extensions
 
-# Paket dependency manager
-.paket/paket.exe
-
-# FAKE - F# Make
-.fake/
+.fake
+packagesOut
+packagePush
