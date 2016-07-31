@@ -20,10 +20,15 @@ namespace Akka.Persistence.Redis.Journal
 {
     public class RedisJournal : AsyncWriteJournal
     {
-        private readonly RedisSettings _settings = RedisPersistence.Get(Context.System).JournalSettings;
+        private readonly RedisSettings _settings;
         private Lazy<Serializer> _serializer;
         private Lazy<IDatabase> _database;
         private ActorSystem _system;
+
+        public RedisJournal()
+        {
+            _settings = RedisPersistence.Get(Context.System).JournalSettings;
+        }
 
         protected override void PreStart()
         {
@@ -34,7 +39,7 @@ namespace Akka.Persistence.Redis.Journal
                 var redisConnection = ConnectionMultiplexer.Connect(_settings.ConfigurationString);
                 return redisConnection.GetDatabase(_settings.Database);
             });
-            _serializer = new Lazy<Serializer>(() => _system.Serialization.FindSerializerForType(typeof(IPersistentRepresentation)));
+            _serializer = new Lazy<Serializer>(() => _system.Serialization.FindSerializerForType(typeof(JournalEntry)));
         }
 
         public override async Task ReplayMessagesAsync(
@@ -49,11 +54,7 @@ namespace Akka.Persistence.Redis.Journal
 
             foreach (var journal in journals)
             {
-                var record = _serializer.Value.FromBinary(journal, typeof(IPersistentRepresentation)).AsInstanceOf<IPersistentRepresentation>();
-                if (record != null)
-                    recoveryCallback(record);
-                else
-                    throw new Exception($"{nameof(ReplayMessagesAsync)}: Failed to deserialize {nameof(IPersistentRepresentation)}");
+                recoveryCallback(ToPersistenceRepresentation(_serializer.Value.FromBinary<JournalEntry>(journal), context.Sender));
             }
         }
 
@@ -70,45 +71,38 @@ namespace Akka.Persistence.Redis.Journal
 
         protected override async Task<IImmutableList<Exception>> WriteMessagesAsync(IEnumerable<AtomicWrite> messages)
         {
-            var messagesList = messages.ToList();
-            var groupedTasks = messagesList.GroupBy(m => m.PersistenceId).ToDictionary(g => g.Key,
-                async g =>
+            var messageList = messages.ToList();
+            var writeTasks = messageList.Select(async message =>
+            {
+                var persistentMessages = ((IImmutableList<IPersistentRepresentation>)message.Payload).ToArray();
+
+                var transaction = _database.Value.CreateTransaction();
+
+                foreach (var write in persistentMessages)
                 {
-                    var persistentMessages = g.SelectMany(aw => (IImmutableList<IPersistentRepresentation>)aw.Payload).ToList();
+                    transaction.SortedSetAddAsync(GetJournalKey(write.PersistenceId), _serializer.Value.ToBinary(ToJournalEntry(write)), write.SequenceNr);
+                }
 
-                    var currentMaxSeqNumber = (long)_database.Value.StringGet(GetHighestSequenceNrKey(g.Key));
+                if (!await transaction.ExecuteAsync())
+                {
+                    throw new Exception($"{nameof(WriteMessagesAsync)}: failed to write {typeof(JournalEntry).Name} to redis");
+                }
+            });
 
-                    var transaction = _database.Value.CreateTransaction();
-                    foreach (var write in persistentMessages)
-                    {
-                        if (write.SequenceNr > currentMaxSeqNumber)
-                        {
-                            currentMaxSeqNumber = write.SequenceNr;
-                        }
+            await SetHighSequenceId(messageList);
 
-#pragma warning disable 4014
-                        transaction.SortedSetAddAsync(GetJournalKey(write.PersistenceId), _serializer.Value.ToBinary(write), write.SequenceNr);
-#pragma warning restore 4014
-                    }
+            return await Task<IImmutableList<Exception>>
+                .Factory
+                .ContinueWhenAll(writeTasks.ToArray(),
+                    tasks => tasks.Select(t => t.IsFaulted ? TryUnwrapException(t.Exception) : null).ToImmutableList());
+        }
 
-#pragma warning disable 4014
-                    transaction.StringSetAsync(GetHighestSequenceNrKey(g.Key), currentMaxSeqNumber);
-#pragma warning restore 4014
+        private async Task SetHighSequenceId(IList<AtomicWrite> messages)
+        {
+            var persistenceId = messages.Select(c => c.PersistenceId).First();
+            var highSequenceId = messages.Max(c => c.HighestSequenceNr);
 
-                    if (!await transaction.ExecuteAsync())
-                    {
-                        throw new Exception($"{nameof(WriteMessagesAsync)}: failed to write {typeof(IPersistentRepresentation).Name} to redis");
-                    }
-                });
-
-            return await Task<IImmutableList<Exception>>.Factory.ContinueWhenAll(
-                    groupedTasks.Values.ToArray(),
-                    tasks => messagesList.Select(
-                        m =>
-                        {
-                            var task = groupedTasks[m.PersistenceId];
-                            return task.IsFaulted ? TryUnwrapException(task.Exception) : null;
-                        }).ToImmutableList());
+            await _database.Value.StringSetAsync(GetHighestSequenceNrKey(persistenceId), highSequenceId);
         }
 
         private RedisKey GetJournalKey(string persistenceId) => $"{_settings.KeyPrefix}:{persistenceId}";
@@ -118,16 +112,21 @@ namespace Akka.Persistence.Redis.Journal
             return $"{GetJournalKey(persistenceId)}.highestSequenceNr";
         }
 
-        private static Exception UnwrapException(Exception e)
+        private JournalEntry ToJournalEntry(IPersistentRepresentation message)
         {
-            var aggregateException = e as AggregateException;
-            if (aggregateException != null)
+            return new JournalEntry
             {
-                aggregateException = aggregateException.Flatten();
-                if (aggregateException.InnerExceptions.Count == 1)
-                    return aggregateException.InnerExceptions[0];
-            }
-            return e;
+                PersistenceId = message.PersistenceId,
+                SequenceNr = message.SequenceNr,
+                IsDeleted = message.IsDeleted,
+                Payload = message.Payload,
+                Manifest = message.Manifest
+            };
+        }
+
+        private Persistent ToPersistenceRepresentation(JournalEntry entry, IActorRef sender)
+        {
+            return new Persistent(entry.Payload, entry.SequenceNr, entry.PersistenceId, entry.Manifest, entry.IsDeleted, sender);
         }
     }
 }

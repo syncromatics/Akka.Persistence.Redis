@@ -18,10 +18,15 @@ namespace Akka.Persistence.Redis.Snapshot
 {
     public class RedisSnapshotStore : SnapshotStore
     {
-        private readonly RedisSettings _settings = RedisPersistence.Get(Context.System).SnapshotStoreSettings;
+        private readonly RedisSettings _settings;
         private Lazy<Serializer> _serializer;
         private Lazy<IDatabase> _database;
         private ActorSystem _system;
+
+        public RedisSnapshotStore()
+        {
+            _settings = RedisPersistence.Get(Context.System).SnapshotStoreSettings;
+        }
 
         protected override void PreStart()
         {
@@ -33,26 +38,31 @@ namespace Akka.Persistence.Redis.Snapshot
                 var redisConnection = ConnectionMultiplexer.Connect(_settings.ConfigurationString);
                 return redisConnection.GetDatabase(_settings.Database);
             });
-            _serializer = new Lazy<Serializer>(() => _system.Serialization.FindSerializerForType(typeof(SelectedSnapshot)));
+            _serializer = new Lazy<Serializer>(() => _system.Serialization.FindSerializerForType(typeof(SnapshotEntry)));
         }
 
         protected override async Task<SelectedSnapshot> LoadAsync(string persistenceId, SnapshotSelectionCriteria criteria)
         {
-            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(SnapshotKey(persistenceId), criteria.MaxSequenceNr, -1, Exclude.None, Order.Descending);
+            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(
+                SnapshotKey(persistenceId),
+                criteria.MaxSequenceNr,
+                -1,
+                Exclude.None,
+                Order.Descending);
+
             var found = snapshots
-                .Select(c => _serializer.Value.FromBinary(c, typeof(SelectedSnapshot)).AsInstanceOf<SelectedSnapshot>())
+                .Select(c => ToSelectedSnapshot(_serializer.Value.FromBinary<SnapshotEntry>(c)))
                 .FirstOrDefault(snapshot => snapshot.Metadata.Timestamp <= criteria.MaxTimeStamp && snapshot.Metadata.SequenceNr <= criteria.MaxSequenceNr);
 
             return found;
         }
 
-        protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
+        protected override Task SaveAsync(SnapshotMetadata metadata, object snapshot)
         {
-            var snapshotRecord = _serializer.Value.ToBinary(new SelectedSnapshot(metadata, snapshot));
-            if (snapshotRecord != null)
-                await _database.Value.SortedSetAddAsync(SnapshotKey(metadata.PersistenceId), snapshotRecord, metadata.SequenceNr);
-            else
-                throw new Exception($"Failed to save snapshot. metadata: {metadata} snapshot: {snapshot}");
+            return _database.Value.SortedSetAddAsync(
+                SnapshotKey(metadata.PersistenceId),
+                _serializer.Value.ToBinary(ToSnapshotEntry(metadata, snapshot)),
+                metadata.SequenceNr);
         }
 
         protected override async Task DeleteAsync(SnapshotMetadata metadata)
@@ -60,12 +70,17 @@ namespace Akka.Persistence.Redis.Snapshot
             await _database.Value.SortedSetRemoveRangeByScoreAsync(SnapshotKey(metadata.PersistenceId), metadata.SequenceNr, metadata.SequenceNr);
         }
 
-        // TODO: SnapshotSelectionCriteria should have MinSequenceNr
         protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria)
         {
-            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(SnapshotKey(persistenceId), criteria.MaxSequenceNr, 0L, Exclude.None, Order.Descending);
+            var snapshots = await _database.Value.SortedSetRangeByScoreAsync(
+                SnapshotKey(persistenceId),
+                criteria.MaxSequenceNr,
+                0L,
+                Exclude.None,
+                Order.Descending);
+
             var found = snapshots
-                .Select(c => _serializer.Value.FromBinary(c, typeof(SelectedSnapshot)).AsInstanceOf<SelectedSnapshot>())
+                .Select(c => ToSelectedSnapshot(_serializer.Value.FromBinary<SnapshotEntry>(c)))
                 .Where(snapshot => snapshot.Metadata.Timestamp <= criteria.MaxTimeStamp && snapshot.Metadata.SequenceNr <= criteria.MaxSequenceNr)
                 .Select(s => _database.Value.SortedSetRemoveRangeByScoreAsync(SnapshotKey(persistenceId), s.Metadata.SequenceNr, s.Metadata.SequenceNr))
                 .ToArray();
@@ -74,5 +89,21 @@ namespace Akka.Persistence.Redis.Snapshot
         }
 
         private string SnapshotKey(string persistenceId) => $"{_settings.KeyPrefix}:{persistenceId}";
+
+        private static SnapshotEntry ToSnapshotEntry(SnapshotMetadata metadata, object snapshot)
+        {
+            return new SnapshotEntry
+            {
+                PersistenceId = metadata.PersistenceId,
+                SequenceNr = metadata.SequenceNr,
+                Snapshot = snapshot,
+                Timestamp = metadata.Timestamp.Ticks
+            };
+        }
+
+        private static SelectedSnapshot ToSelectedSnapshot(SnapshotEntry entry)
+        {
+            return new SelectedSnapshot(new SnapshotMetadata(entry.PersistenceId, entry.SequenceNr, new DateTime(entry.Timestamp)), entry.Snapshot);
+        }
     }
 }

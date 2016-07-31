@@ -46,3 +46,17 @@ akka.persistence {
     }
 }
 ```
+
+### Serialization
+The events and snapshots are stored as Json documents via default NewtonsoftJsonSerializer. If you want to change the serialization format, you should change HOCON settings
+```hocon
+akka.actor {
+  serializers {
+    redis = "Akka.Serialization.YourOwnSerializer, YourOwnSerializer"
+  }
+  serialization-bindings {
+    "Akka.Persistence.Redis.Journal.JournalEntry, Akka.Persistence.Redis" = redis
+	"Akka.Persistence.Redis.Snapshot.SnapshotEntry, Akka.Persistence.Redis" = redis
+  }
+}
+```
