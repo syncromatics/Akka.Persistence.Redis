@@ -71,10 +71,13 @@ namespace Akka.Persistence.Redis.Journal
 
         protected override async Task<IImmutableList<Exception>> WriteMessagesAsync(IEnumerable<AtomicWrite> messages)
         {
-            var messageList = messages.ToList();
-            var writeTasks = messageList.Select(async message =>
+            var messagesList = messages.ToList();
+            var groupedTasks = messagesList.GroupBy(x => x.PersistenceId).ToDictionary(g => g.Key, async g =>
             {
-                var persistentMessages = ((IImmutableList<IPersistentRepresentation>)message.Payload).ToArray();
+                var persistentMessages = g.SelectMany(aw => (IImmutableList<IPersistentRepresentation>)aw.Payload).ToList();
+
+                var persistenceId = g.Key;
+                var highSequenceId = persistentMessages.Max(c => c.SequenceNr);
 
                 var transaction = _database.Value.CreateTransaction();
 
@@ -83,26 +86,22 @@ namespace Akka.Persistence.Redis.Journal
                     transaction.SortedSetAddAsync(GetJournalKey(write.PersistenceId), _serializer.Value.ToBinary(ToJournalEntry(write)), write.SequenceNr);
                 }
 
+                transaction.StringSetAsync(GetHighestSequenceNrKey(persistenceId), highSequenceId);
+
                 if (!await transaction.ExecuteAsync())
                 {
                     throw new Exception($"{nameof(WriteMessagesAsync)}: failed to write {typeof(JournalEntry).Name} to redis");
                 }
             });
 
-            await SetHighSequenceId(messageList);
-
-            return await Task<IImmutableList<Exception>>
-                .Factory
-                .ContinueWhenAll(writeTasks.ToArray(),
-                    tasks => tasks.Select(t => t.IsFaulted ? TryUnwrapException(t.Exception) : null).ToImmutableList());
-        }
-
-        private async Task SetHighSequenceId(IList<AtomicWrite> messages)
-        {
-            var persistenceId = messages.Select(c => c.PersistenceId).First();
-            var highSequenceId = messages.Max(c => c.HighestSequenceNr);
-
-            await _database.Value.StringSetAsync(GetHighestSequenceNrKey(persistenceId), highSequenceId);
+            return await Task<IImmutableList<Exception>>.Factory.ContinueWhenAll(
+                    groupedTasks.Values.ToArray(),
+                    tasks => messagesList.Select(
+                        m =>
+                        {
+                            var task = groupedTasks[m.PersistenceId];
+                            return task.IsFaulted ? TryUnwrapException(task.Exception) : null;
+                        }).ToImmutableList());
         }
 
         private RedisKey GetJournalKey(string persistenceId) => $"{_settings.KeyPrefix}:{persistenceId}";
