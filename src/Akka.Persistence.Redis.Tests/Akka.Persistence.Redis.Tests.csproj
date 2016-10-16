@@ -36,24 +36,24 @@
     <DocumentationFile>bin\Release\Akka.Persistence.Redis.Tests.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Akka, Version=1.1.1.27, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.1.1.1\lib\net45\Akka.dll</HintPath>
+    <Reference Include="Akka, Version=1.1.2.29, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.1.1.2\lib\net45\Akka.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Akka.Persistence, Version=1.1.1.28, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.Persistence.1.1.1.28-beta\lib\net45\Akka.Persistence.dll</HintPath>
+    <Reference Include="Akka.Persistence, Version=1.1.2.30, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.Persistence.1.1.2.30-beta\lib\net45\Akka.Persistence.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Akka.Persistence.TestKit, Version=1.1.1.28, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.Persistence.TestKit.1.1.1.28-beta\lib\net45\Akka.Persistence.TestKit.dll</HintPath>
+    <Reference Include="Akka.Persistence.TestKit, Version=1.1.2.30, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.Persistence.TestKit.1.1.2.30-beta\lib\net45\Akka.Persistence.TestKit.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Akka.TestKit, Version=1.1.1.27, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.TestKit.1.1.1\lib\net45\Akka.TestKit.dll</HintPath>
+    <Reference Include="Akka.TestKit, Version=1.1.2.29, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.TestKit.1.1.2\lib\net45\Akka.TestKit.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Akka.TestKit.Xunit2, Version=1.1.1.27, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.TestKit.Xunit2.1.1.1\lib\net45\Akka.TestKit.Xunit2.dll</HintPath>
+    <Reference Include="Akka.TestKit.Xunit2, Version=1.1.2.29, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.TestKit.Xunit2.1.1.2\lib\net45\Akka.TestKit.Xunit2.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FluentAssertions, Version=4.12.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
@@ -72,13 +72,12 @@
       <HintPath>..\packages\Google.ProtocolBuffers.2.4.1.555\lib\net40\Google.ProtocolBuffers.Serialization.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="StackExchange.Redis, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\StackExchange.Redis.1.1.603\lib\net45\StackExchange.Redis.dll</HintPath>
+    <Reference Include="StackExchange.Redis, Version=1.1.608.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StackExchange.Redis.1.1.608\lib\net45\StackExchange.Redis.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -88,6 +87,7 @@
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
