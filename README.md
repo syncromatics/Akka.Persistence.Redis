@@ -12,6 +12,7 @@ Remember that connection string must be provided separately to Journal and Snaps
 ```hocon
 akka.persistence {
     journal {
+        plugin = "akka.persistence.journal.redis"
         redis {
             # qualified type name of the Redis persistence journal actor
             class = "Akka.Persistence.Redis.Journal.RedisJournal, Akka.Persistence.Redis"
@@ -28,6 +29,7 @@ akka.persistence {
     }    
 
     snapshot-store {
+        plugin = "akka.persistence.snapshot-store.redis"
         redis {
             # qualified type name of the Redis persistence snapshot storage actor
             class = "Akka.Persistence.Redis.Snapshot.RedisSnapshotStore, Akka.Persistence.Redis"
