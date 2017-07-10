@@ -1,7 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="RedisSettingsSpec.cs" company="Akka.NET Project">
-//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
-//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+//     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
@@ -20,7 +19,7 @@ namespace Akka.Persistence.Redis.Tests
 
             redisPersistence.JournalSettings.ConfigurationString.Should().Be(string.Empty);
             redisPersistence.JournalSettings.Database.Should().Be(0);
-            redisPersistence.JournalSettings.KeyPrefix.Should().Be("akka:persistence:journal");
+            redisPersistence.JournalSettings.KeyPrefix.Should().Be(string.Empty);
         }
 
         [Fact]
@@ -30,7 +29,7 @@ namespace Akka.Persistence.Redis.Tests
 
             redisPersistence.SnapshotStoreSettings.ConfigurationString.Should().Be(string.Empty);
             redisPersistence.SnapshotStoreSettings.Database.Should().Be(0);
-            redisPersistence.SnapshotStoreSettings.KeyPrefix.Should().Be("akka:persistence:snapshots");
+            redisPersistence.SnapshotStoreSettings.KeyPrefix.Should().Be(string.Empty);
         }
     }
 }

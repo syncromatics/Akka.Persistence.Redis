@@ -1,13 +1,11 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="DbUtils.cs" company="Akka.NET Project">
-//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
-//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+//     Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+//     Copyright (C) 2013-2017 Akka.NET project <https://github.com/akkadotnet/akka.net>
 // </copyright>
 //-----------------------------------------------------------------------
 
-
 using System;
-using System.Configuration;
 using System.Linq;
 using StackExchange.Redis;
 
@@ -15,18 +13,13 @@ namespace Akka.Persistence.Redis.Tests
 {
     public static class DbUtils
     {
-        public static void Clean(string keyPrefix)
+        public static void Clean(int database)
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["redis"].ConnectionString;
-            var database = Convert.ToInt32(ConfigurationManager.AppSettings["redisDatabase"]);
+            var connectionString = "localhost,allowAdmin=true";
 
             var redisConnection = ConnectionMultiplexer.Connect(connectionString);
             var server = redisConnection.GetServer(redisConnection.GetEndPoints().First());
-            var db = redisConnection.GetDatabase(database);
-            foreach (var key in server.Keys(database: database, pattern: $"{keyPrefix}:*"))
-            {
-                db.KeyDelete(key);
-            }
+            server.FlushDatabase(database);
         }
     }
 }

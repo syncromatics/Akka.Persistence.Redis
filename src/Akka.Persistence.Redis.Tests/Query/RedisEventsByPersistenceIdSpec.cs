@@ -1,23 +1,24 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="RedisJournalSpec.cs" company="Akka.NET Project">
+// <copyright file="RedisEventsByPersistenceIdSpec.cs" company="Akka.NET Project">
 //     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
 using Akka.Configuration;
+using Akka.Persistence.Query;
 using Akka.Persistence.Redis.Query;
-using Akka.Persistence.TCK.Journal;
+using Akka.Persistence.TCK.Query;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Akka.Persistence.Redis.Tests
+namespace Akka.Persistence.Redis.Tests.Query
 {
     [Collection("RedisSpec")]
-    public class RedisJournalSpec : JournalSpec
+    public class RedisEventsByPersistenceIdSpec : EventsByPersistenceIdSpec
     {
         public const int Database = 1;
 
-        public static Config SpecConfig(int id) => ConfigurationFactory.ParseString($@"
+        public static Config Config(int id) => ConfigurationFactory.ParseString($@"
             akka.loglevel = INFO
             akka.persistence.journal.plugin = ""akka.persistence.journal.redis""
             akka.persistence.journal.redis {{
@@ -29,18 +30,15 @@ namespace Akka.Persistence.Redis.Tests
             akka.test.single-expect-default = 3s")
             .WithFallback(RedisReadJournal.DefaultConfiguration());
 
-        public RedisJournalSpec(ITestOutputHelper output) : base(SpecConfig(Database), nameof(RedisJournalSpec), output)
+        public RedisEventsByPersistenceIdSpec(ITestOutputHelper output) : base(Config(Database), nameof(RedisEventsByPersistenceIdSpec), output)
         {
-            RedisPersistence.Get(Sys);
-            Initialize();
+            ReadJournal = Sys.ReadJournalFor<RedisReadJournal>(RedisReadJournal.Identifier);
         }
-
-        protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
             DbUtils.Clean(Database);
+            base.Dispose(disposing);
         }
     }
 }

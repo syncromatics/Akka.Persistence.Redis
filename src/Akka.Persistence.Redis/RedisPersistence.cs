@@ -1,7 +1,6 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="RedisPersistence.cs" company="Akka.NET Project">
-//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
-//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+// <copyright file="RedisSettings.cs" company="Akka.NET Project">
+//     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
@@ -32,9 +31,9 @@ namespace Akka.Persistence.Redis
                 throw new ArgumentNullException(nameof(config));
 
             return new RedisSettings(
-                configurationString: config.GetString("configuration-string"),
-                keyPrefix: config.GetString("key-prefix"),
-                database: config.GetInt("database"));
+              configurationString: config.GetString("configuration-string"),
+              keyPrefix: config.GetString("key-prefix"),
+              database: config.GetInt("database"));
         }
     }
 

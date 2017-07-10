@@ -1,13 +1,12 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="RedisSnapshotStoreSpec.cs" company="Akka.NET Project">
-//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
-//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
+//     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Configuration;
 using Akka.Configuration;
-using Akka.Persistence.TestKit.Snapshot;
+using Akka.Persistence.Redis.Query;
+using Akka.Persistence.TCK.Snapshot;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -17,12 +16,11 @@ namespace Akka.Persistence.Redis.Tests
     public class RedisSnapshotStoreSpec : SnapshotStoreSpec
     {
         private static readonly Config SpecConfig;
-        private static readonly string KeyPrefix;
+        public const int Database = 1;
 
         static RedisSnapshotStoreSpec()
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["redis"].ConnectionString;
-            var database = ConfigurationManager.AppSettings["redisDatabase"];
+            var connectionString = "127.0.0.1:6379";
 
             SpecConfig = ConfigurationFactory.ParseString(@"
                 akka.test.single-expect-default = 3s
@@ -34,14 +32,10 @@ namespace Akka.Persistence.Redis.Tests
                             class = ""Akka.Persistence.Redis.Snapshot.RedisSnapshotStore, Akka.Persistence.Redis""
                             configuration-string = """ + connectionString + @"""
                             plugin-dispatcher = ""akka.actor.default-dispatcher""
-                            ttl = 1h
-                            database = """ + database + @"""
-                            key-prefix = ""akka:persistence:snapshots""
+                            database = """ + Database + @"""
                         }
                     }
-                }");
-
-            KeyPrefix = SpecConfig.GetString("akka.persistence.snapshot-store.redis.key-prefix");
+                }").WithFallback(RedisReadJournal.DefaultConfiguration());
         }
 
         public RedisSnapshotStoreSpec(ITestOutputHelper output)
@@ -54,7 +48,7 @@ namespace Akka.Persistence.Redis.Tests
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            DbUtils.Clean(KeyPrefix);
+            DbUtils.Clean(Database);
         }
     }
 }

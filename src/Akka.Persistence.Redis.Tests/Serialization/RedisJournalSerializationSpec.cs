@@ -1,19 +1,19 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="RedisJournalSpec.cs" company="Akka.NET Project">
+// <copyright file="RedisJournalSerializationSpec.cs" company="Akka.NET Project">
 //     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
 using Akka.Configuration;
 using Akka.Persistence.Redis.Query;
-using Akka.Persistence.TCK.Journal;
+using Akka.Persistence.TCK.Serialization;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Akka.Persistence.Redis.Tests
+namespace Akka.Persistence.Redis.Tests.Serialization
 {
     [Collection("RedisSpec")]
-    public class RedisJournalSpec : JournalSpec
+    public class RedisJournalSerializationSpec : JournalSerializationSpec
     {
         public const int Database = 1;
 
@@ -29,13 +29,24 @@ namespace Akka.Persistence.Redis.Tests
             akka.test.single-expect-default = 3s")
             .WithFallback(RedisReadJournal.DefaultConfiguration());
 
-        public RedisJournalSpec(ITestOutputHelper output) : base(SpecConfig(Database), nameof(RedisJournalSpec), output)
+        public RedisJournalSerializationSpec(ITestOutputHelper output) : base(SpecConfig(Database), nameof(RedisJournalSerializationSpec), output)
         {
-            RedisPersistence.Get(Sys);
-            Initialize();
         }
 
-        protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
+        [Fact(Skip = "JsonSerializer does not support it at the moment")]
+        public override void Journal_should_serialize_Persistent()
+        {
+        }
+
+        [Fact(Skip = "JsonSerializer does not support it at the moment")]
+        public override void Journal_should_serialize_Persistent_with_EventAdapter_manifest()
+        {
+        }
+
+        [Fact(Skip = "JsonSerializer does not support it at the moment")]
+        public override void Journal_should_serialize_Persistent_with_string_manifest()
+        {
+        }
 
         protected override void Dispose(bool disposing)
         {

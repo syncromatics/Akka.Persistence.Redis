@@ -1,23 +1,21 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="RedisJournalSpec.cs" company="Akka.NET Project">
+// <copyright file="RedisJournalPerfSpec.cs" company="Akka.NET Project">
 //     Copyright (C) 2017 Akka.NET Contrib <https://github.com/AkkaNetContrib/Akka.Persistence.Redis>
 // </copyright>
 //-----------------------------------------------------------------------
 
 using Akka.Configuration;
 using Akka.Persistence.Redis.Query;
-using Akka.Persistence.TCK.Journal;
-using Xunit;
+using Akka.Persistence.TestKit.Performance;
 using Xunit.Abstractions;
 
 namespace Akka.Persistence.Redis.Tests
 {
-    [Collection("RedisSpec")]
-    public class RedisJournalSpec : JournalSpec
+    public class RedisJournalPerfSpec : JournalPerfSpec
     {
         public const int Database = 1;
 
-        public static Config SpecConfig(int id) => ConfigurationFactory.ParseString($@"
+        public static Config Config(int id) => ConfigurationFactory.ParseString($@"
             akka.loglevel = INFO
             akka.persistence.journal.plugin = ""akka.persistence.journal.redis""
             akka.persistence.journal.redis {{
@@ -27,15 +25,13 @@ namespace Akka.Persistence.Redis.Tests
                 database = {id}
             }}
             akka.test.single-expect-default = 3s")
-            .WithFallback(RedisReadJournal.DefaultConfiguration());
+            .WithFallback(RedisReadJournal.DefaultConfiguration())
+            .WithFallback(Persistence.DefaultConfig());
 
-        public RedisJournalSpec(ITestOutputHelper output) : base(SpecConfig(Database), nameof(RedisJournalSpec), output)
+
+        public RedisJournalPerfSpec(ITestOutputHelper output) : base(Config(Database), nameof(RedisJournalPerfSpec), output)
         {
-            RedisPersistence.Get(Sys);
-            Initialize();
         }
-
-        protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
 
         protected override void Dispose(bool disposing)
         {
