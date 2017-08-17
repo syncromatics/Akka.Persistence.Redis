@@ -161,7 +161,7 @@ namespace Akka.Persistence.Redis.Query.Stages
                     }
                     else
                     {
-                        var (evts, maxSequenceNr) = events.Aggregate((new List<EventEnvelope>(), _currentSequenceNr), (tuple, pr) =>
+                        var (evts, maxSequenceNr) = events.Aggregate((new List<EventEnvelope>(), currentSequenceNr: _currentSequenceNr), (tuple, pr) =>
                         {
                             if (!pr.IsDeleted &&
                                 pr.SequenceNr >= _currentSequenceNr &&
