@@ -6,7 +6,7 @@ using MessagePack.Formatters;
 
 namespace Akka.Persistence.Redis.Serialization.Internal
 {
-    public sealed class AkkaResolver : IFormatterResolver
+    internal sealed class AkkaResolver : IFormatterResolver
     {
         public static IFormatterResolver Instance = new AkkaResolver();
         private AkkaResolver() { }
@@ -25,7 +25,10 @@ namespace Akka.Persistence.Redis.Serialization.Internal
         {
             {typeof(ActorPath), new ActorPathFormatter<ActorPath>()},
             {typeof(ChildActorPath), new ActorPathFormatter<ChildActorPath>()},
-            {typeof(RootActorPath), new ActorPathFormatter<RootActorPath>()}
+            {typeof(RootActorPath), new ActorPathFormatter<RootActorPath>()},
+            {typeof(IPersistentRepresentation), new PersistentFormatter<IPersistentRepresentation>()},
+            {typeof(Persistent), new PersistentFormatter<Persistent>()},
+            {typeof(SelectedSnapshot), new SelectedSnapshotFormatter<SelectedSnapshot>()},
         };
 
         internal static object GetFormatter(Type t) => FormatterMap.TryGetValue(t, out var formatter) ? formatter : null;
