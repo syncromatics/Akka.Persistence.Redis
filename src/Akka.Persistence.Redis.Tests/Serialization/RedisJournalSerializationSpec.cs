@@ -21,6 +21,12 @@ namespace Akka.Persistence.Redis.Tests.Serialization
             akka.loglevel = INFO
             akka.persistence.journal.plugin = ""akka.persistence.journal.redis""
             akka.persistence.journal.redis {{
+                event-adapters {{
+                    my-adapter = ""Akka.Persistence.TCK.Serialization.TestJournal+MyWriteAdapter, Akka.Persistence.TCK""
+                }}
+                event-adapter-bindings = {{
+                    ""Akka.Persistence.TCK.Serialization.TestJournal+MyPayload3, Akka.Persistence.TCK"" = my-adapter
+                }}
                 class = ""Akka.Persistence.Redis.Journal.RedisJournal, Akka.Persistence.Redis""
                 plugin-dispatcher = ""akka.actor.default-dispatcher""
                 configuration-string = ""127.0.0.1:6379""
@@ -30,21 +36,6 @@ namespace Akka.Persistence.Redis.Tests.Serialization
             .WithFallback(RedisReadJournal.DefaultConfiguration());
 
         public RedisJournalSerializationSpec(ITestOutputHelper output) : base(SpecConfig(Database), nameof(RedisJournalSerializationSpec), output)
-        {
-        }
-
-        [Fact(Skip = "JsonSerializer does not support it at the moment")]
-        public override void Journal_should_serialize_Persistent()
-        {
-        }
-
-        [Fact(Skip = "JsonSerializer does not support it at the moment")]
-        public override void Journal_should_serialize_Persistent_with_EventAdapter_manifest()
-        {
-        }
-
-        [Fact(Skip = "JsonSerializer does not support it at the moment")]
-        public override void Journal_should_serialize_Persistent_with_string_manifest()
         {
         }
 
