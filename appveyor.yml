@@ -13,9 +13,9 @@
   - '@ECHO Redis Started'
   build_script:
   - ps: ./build.ps1 Build
-  - ps: ./build.ps1 CreateNuget
   test_script:
   - ps: ./build.ps1 RunTests
+  - ps: ./build.ps1 CreateNuget
   artifacts:
   - path: build/nuget/*.nupkg
     name: nuget
@@ -41,9 +41,9 @@
   - '@ECHO Redis Started'
   build_script:
   - ps: ./build.ps1 Build
-  - ps: ./build.ps1 CreateNuget
   test_script:
   - ps: ./build.ps1 RunTests
+  - ps: ./build.ps1 CreateNuget
   artifacts:
   - path: build/nuget/*.nupkg
     name: nuget
