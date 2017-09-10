@@ -146,8 +146,14 @@ In addition to the `offset` the `EventEnvelope` also provides `persistenceId` an
 The returned event stream contains only events that correspond to the given tag, and is ordered by the creation time of the events. The same stream elements (in same order) are returned for multiple executions of the same query. Deleted events are not deleted from the tagged event stream.
 
 ## Serialization
-The events and snapshots are stored as Json documents via default NewtonsoftJsonSerializer. If you want to change the serialization format, you should change HOCON settings
-```hocon
+Akka Persistence provided serializers wrap the user payload in an envelope containing all persistence-relevant information. Redis Journal uses provided Protobuf serializers for the wrapper types (e.g. `IPersistentRepresentation`), then the payload will be serialized using the user configured serializer. By default, the payload will be serialized using JSON.NET serializer. This is fine for testing and initial phases of your development (while you’re still figuring out things and the data will not need to stay persisted forever). However, once you move to production you should really pick a different serializer for your payloads.
+
+Serialization of snapshots and payloads of Persistent messages is configurable with Akka’s Serialization infrastructure. For example, if an application wants to serialize
+
+- payloads of type `MyPayload` with a custom `MyPayloadSerializer` and
+- snapshots of type `MySnapshot` with a custom `MySnapshotSerializer`
+it must add
+```
 akka.actor {
   serializers {
     redis = "Akka.Serialization.YourOwnSerializer, YourOwnSerializer"
