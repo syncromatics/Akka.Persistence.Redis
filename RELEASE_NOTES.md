@@ -1,3 +1,10 @@
+#### 1.0.0-beta1 Sep 10 2017 ####
+- Support for .NET Standard 1.6
+- Support for Persistence Query
+- Use Google.Protobuf serialization both for journal and snapshots
+- Updated Akka.Persistence to 1.3.1
+- StackExchange.Redis to 1.2.6
+
 #### 0.2.5 Oct 16 2016 ####
 - Updated Akka.Persistence to 1.1.2
 - Updated Json.Net to 9.0.1
