@@ -32,8 +32,23 @@ namespace Akka.Persistence.Redis.Snapshot
             _system = Context.System;
             _database = new Lazy<IDatabase>(() =>
             {
-                var redisConnection = ConnectionMultiplexer.Connect(_settings.ConfigurationString);
-                return redisConnection.GetDatabase(_settings.Database);
+                var redisSettings = ConfigurationOptions.Parse(_settings.ConfigurationString);
+                bool isSentinel = !string.IsNullOrWhiteSpace(redisSettings.ServiceName);
+                ConfigurationOptions sentinelMasterConfigSettings = null;
+
+                if (isSentinel)
+                {
+                    redisSettings.TieBreaker = string.Empty;
+                    redisSettings.CommandMap = CommandMap.Sentinel;
+                    sentinelMasterConfigSettings = new ConfigurationOptions { ServiceName = redisSettings.ServiceName };
+                }
+
+                var redisConnection = ConnectionMultiplexer.Connect(redisSettings);
+
+                return isSentinel
+                    ? redisConnection.GetSentinelMasterConnection(sentinelMasterConfigSettings)
+                        .GetDatabase(_settings.Database)
+                    : redisConnection.GetDatabase(_settings.Database);
             });
         }
 

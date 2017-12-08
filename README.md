@@ -1,3 +1,9 @@
+This fork just exists until [this pr adds sentinel support](https://github.com/StackExchange/StackExchange.Redis/pull/692)
+is merged.  At that point in time a pr may be submitted to upstream in order to support sentinel similarly to how it
+is written in this branch.
+
+The nuget feed for this branch can be found at https://ci.appveyor.com/nuget/syncromatics-akka-persistence-redis
+
 # Akka.Persistence.Redis 
 
 [![Build status](https://ci.appveyor.com/api/projects/status/uxdr5352akbdi605/branch/dev?svg=true)](https://ci.appveyor.com/project/akkadotnet-contrib/akka-persistence-redis/branch/dev) [![NuGet Version](http://img.shields.io/nuget/v/Akka.Persistence.Redis.svg?style=flat)](https://www.nuget.org/packages/Akka.Persistence.Redis)

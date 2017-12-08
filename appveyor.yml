@@ -55,3 +55,26 @@
     skip_symbols: false
     symbol_server: https://www.myget.org/F/akkadotnet-contrib/symbols/api/v2/package
     artifact: /.*\.nupkg/
+
+- 
+  branches:
+    only:
+      - /feature\/.*/
+  image: Visual Studio 2017
+  platform: Any CPU
+  configuration: Release
+  install:
+  - nuget install redis-64 -excludeversion
+  - redis-64\tools\redis-server.exe --service-install
+  - redis-64\tools\redis-server.exe --service-start
+  - '@ECHO Redis Started'
+  build_script:
+  - ps: ./build.ps1 Build
+  test_script:
+  - ps: ./build.ps1 RunTests
+  - ps: ./build.ps1 CreateNuget
+  artifacts:
+  - path: build/nuget/*.nupkg
+    name: nuget
+  nuget:
+    project_feed: true    
